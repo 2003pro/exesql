@@ -2,7 +2,13 @@
 This repository contains the official implementation of ExeSQL.
 
 ## 🧭 Overview
-![Main Result](fig/main.pdf)
+![Pipeline](fig/main.png)
+
+**Figure:** *Pipeline for Dialect Text-to-SQL Data Generation and Model Training.*  
+The framework consists of three stages:  
+(1) **Translation Bootstrapping**: A bootstrap text-to-SQL model is fine-tuned using SQL translations from an existing dataset (e.g., SQLite) to other dialects (e.g., MySQL, PostgreSQL).  
+(2) **Iterative Data Generation and Training**: The model generates multiple SQL candidates per question, which are validated via execution feedback. Correct queries are retained to refine the dataset, enabling iterative self-improvement.  
+(3) **Preference Enhancement**: A Direct Preference Optimization (DPO) step is applied to distinguish correct and incorrect SQL queries. High-quality pairs (question, correct SQL) are used to further improve the model’s performance and preference learning, ensuring both correctness and efficiency in SQL generation.
 
 ## 📊 Main Results
 ### Performance Comparison of LLMs on SQL Benchmarks
