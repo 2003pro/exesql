@@ -2,7 +2,7 @@
 This repository contains the official implementation of ExeSQL.
 
 ## 🧭 Overview
-![Main Result](fig/exesql_main.png)
+![Main Result](fig/main.pdf)
 
 ## 📊 Main Results
 ### Performance Comparison of LLMs on SQL Benchmarks
@@ -36,3 +36,5 @@ This repository contains the official implementation of ExeSQL.
 | Method               | Model size | PostgreSQL Spider | PostgreSQL WikiSQL | MySQL Spider | MySQL WikiSQL | MySQL Bird | Oracle Spider | Average |
 |----------------------|------------|-------------------|--------------------|--------------|----------------|-------------|----------------|---------|
 | **ExeSQL**           | 7B         | **69.86**         | **74.10**          | **72.09**    | **73.64**      | **41.13**   | **69.35**      | **66.70** |
+
+## Implemention
