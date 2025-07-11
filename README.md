@@ -1,8 +1,10 @@
 # Exesql: Self-Taught Text-to-SQL Models with Execution-Driven Bootstrapping for SQL Dialects
 This repository contains the official implementation of ExeSQL.
 
-![Main Result](fig/main.png)
+## 🧭 Overview
+![Main Result](fig/exesql_main.tiff)
 
+## 📊 Main Results
 ### Performance Comparison of LLMs on SQL Benchmarks
 
 **General Purposed LLM**
