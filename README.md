@@ -2,7 +2,7 @@
 This repository contains the official implementation of ExeSQL.
 
 ## 🧭 Overview
-![Main Result](fig/exesql_main.tiff)
+![Main Result](fig/exesql_main.png)
 
 ## 📊 Main Results
 ### Performance Comparison of LLMs on SQL Benchmarks
