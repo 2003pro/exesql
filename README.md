@@ -58,6 +58,7 @@ source venv/bin/activate  # On Windows: .\venv\Scripts\activate
 
 # Install all required packages
 pip install -r requirements.txt
+```
 
 ### 2. Run Inference
 You can use the local_generate_sql.py script to generate SQL queries. This script utilizes vLLM for high-throughput inference.
@@ -72,3 +73,4 @@ python local_generate_sql.py \
     --sql_dialect "PostgreSQL" \
     --gpu "0" \
     --batch_size 32
+```
