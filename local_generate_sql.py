@@ -73,26 +73,38 @@ def generate_vllm_outputs(prompts, model_name_or_path, temperature, top_p, stop_
 
 # Prompt construction
 
-def construct_prompt(question: str, evidence: str, schema: str) -> str:
+def construct_prompt(question: str, evidence: str, schema: str, sql_dialect: str) -> str:
+    """
+    Constructs the prompt with the specified SQL dialect.
+    """
     return (
-        "You need to generate Sqlite SQL based on the following question and database schema. "
-        "The output should only be the Sqlite SQL in one line beginning with SELECT, without explanations or comments.\n\n"
+        f"You need to generate {sql_dialect} SQL based on the following question and database schema. "
+        f"The output should only be the {sql_dialect} SQL in one line beginning with SELECT, without explanations or comments.\n\n"
         f"### Question:\n{question}\n\n"
         f"### Evidence:\n{evidence}\n\n"
         f"### Database schema:\n{schema}\n\n"
-        "Sqlite SQL: "
+        f"{sql_dialect} SQL: "
     )
 
 # Main script
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Generate Sqlite SQL using local LLM and full database schema."
+        description="Generate SQL using local LLM and full database schema."
     )
     parser.add_argument('--data_file', type=str, required=True, help="Input JSON file path")
     parser.add_argument('--output_file', type=str, required=True, help="Output TXT file: index<TAB>SQL<TAB>db_id")
     parser.add_argument('--gpu', type=str, default=None, help="CUDA_VISIBLE_DEVICES setting")
     parser.add_argument('--model_name_or_path', type=str, required=True, help="Model name or path")
+    
+    # New argument for SQL dialect
+    parser.add_argument(
+        '--sql_dialect', 
+        type=str, 
+        default="Sqlite", 
+        help="The SQL dialect to generate (e.g., Sqlite, PostgreSQL, MySQL). Default: Sqlite"
+    )
+    
     parser.add_argument('--temperature', type=float, default=0.1, help="Sampling temperature")
     parser.add_argument('--max_tokens', type=int, default=1024, help="Max tokens to generate")
     parser.add_argument('--top_p', type=float, default=0.95, help="Top-p sampling")
@@ -103,7 +115,6 @@ def main():
     parser.add_argument('--db_base_dir', type=str, default="spider_data/test_database", help="Database root directory")
     args = parser.parse_args()
 
-    # --- MODIFIED logic below ---
     gpu_num = 1 # Default to 1 GPU
     if args.gpu:
         os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu
@@ -125,7 +136,9 @@ def main():
         if not schema:
             print(f"Skipping {db_id}: schema not found.")
             continue
-        prompt = construct_prompt(question, evidence, schema)
+        
+        # Pass the sql_dialect to the prompt constructor
+        prompt = construct_prompt(question, evidence, schema, args.sql_dialect)
         prompts.append(prompt)
         metas.append((idx, db_id))
 
@@ -150,6 +163,11 @@ def main():
                 text = ' '.join(parts)
             elif hasattr(out, 'text'):
                 text = out.text.strip().replace('\n',' ')
+            
+            # Ensure the final output doesn't start with the dialect name if the model repeats it
+            if text.upper().startswith(args.sql_dialect.upper() + " SQL:"):
+                text = text[len(args.sql_dialect) + 5:].strip()
+
             f.write(f"{idx}\t{text}\t{db_id}\n")
     print(f"Outputs saved to {args.output_file}")
 
