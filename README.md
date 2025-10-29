@@ -44,3 +44,31 @@ The framework consists of three stages:
 | **ExeSQL**           | 7B         | **69.86**         | **74.10**          | **72.09**    | **73.64**      | **41.13**   | **69.35**      | **66.70** |
 
 ## Implemention
+
+## Implementation
+
+### 1. Environment Setup
+
+First, ensure you have all the necessary dependencies installed. We highly recommend doing this within a virtual environment (e.g., `venv` or `conda`).
+
+```bash
+# (Optional, but recommended) Create and activate a new virtual environment
+python -m venv venv
+source venv/bin/activate  # On Windows: .\venv\Scripts\activate
+
+# Install all required packages
+pip install -r requirements.txt
+
+### 2. Run Inference
+You can use the local_generate_sql.py script to generate SQL queries. This script utilizes vLLM for high-throughput inference.
+
+Run the code:
+```bash
+python local_generate_sql.py \
+    --data_file /path/to/your/input_data.json \
+    --output_file /path/to/your/predictions.txt \
+    --model_name_or_path /path/to/your/huggingface_model \
+    --db_base_dir /path/to/spider_data/test_database \
+    --sql_dialect "PostgreSQL" \
+    --gpu "0" \
+    --batch_size 32
