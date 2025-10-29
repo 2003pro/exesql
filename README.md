@@ -74,3 +74,35 @@ python local_generate_sql.py \
     --batch_size 32
 ```
 You can change PostgreSQL to MySQL, SQLite, Oracle SQL, SQL Server, DuckDB, etc. 
+
+### 3. Clean Inference Output
+The output from the LLM (e.g., `predictions.txt`) might contain extra text, newlines, or formatting artifacts. The `clean.py` script standardizes the output to the required `index<TAB>SQL<TAB>db_id` format, merges multi-line queries, and extracts the first valid `SELECT` statement.
+```bash
+python clean.py \
+    --input_file /path/to/your/predictions.txt \
+    --output_file /path/to/your/cleaned_predictions.txt
+```
+### 4. Execute SQL Queries
+After cleaning the predictions, you can execute the generated SQL queries against the databases. We provide separate scripts for different SQL dialects.
+
+Note: The `run_sqlite.py` script works out-of-the-box with the provided `.sqlite` database files (assuming you have them). All other dialects require specific environment setup (see section below).
+
+#### SQLite (Default):
+```bash
+python run_sqlite.py \
+    --db_dir /path/to/spider_data/test_database \
+    --input_file /path/to/your/cleaned_predictions.txt \
+    --output_file /path/to/your/sqlite_results.txt
+```
+
+#### Other Dialects (e.g., MySQL):
+For other dialects, you must provide connection details. See the "Advanced Environment Setup" section for prerequisites.
+```bash
+# Example for MySQL
+python run_mysql.py \
+    --mysql_socket  /path/to/your/mysql.sock file \
+    --mysql_user "your_user" \
+    --mysql_password "your_password" \
+    --input_file /path/to/your/cleaned_predictions.txt \
+    --output_file /path/to/your/mysql_results.txt
+```
