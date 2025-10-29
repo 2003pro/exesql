@@ -53,24 +53,26 @@ First, ensure you have all the necessary dependencies installed. We highly recom
 
 ```bash
 # (Optional, but recommended) Create and activate a new virtual environment
-python -m venv venv
-source venv/bin/activate  # On Windows: .\venv\Scripts\activate
+conda create -n exesql python=3.9 -y
+conda activate exesql
 
 # Install all required packages
+cd exesql
 pip install -r requirements.txt
 ```
 
 ### 2. Run Inference
-You can use the local_generate_sql.py script to generate SQL queries. This script utilizes vLLM for high-throughput inference.
+You can use the local_generate_sql.py script to generate SQL queries. This script utilizes vLLM for high-throughput inference. You need to download the Spider dataset from [the page](https://yale-lily.github.io/spider) and Bird dataset from [the page](https://bird-bench.github.io/).
 
 Run the code:
 ```bash
 python local_generate_sql.py \
-    --data_file /path/to/your/input_data.json \
+    --data_file spider_data/test_index.json \
     --output_file /path/to/your/predictions.txt \
     --model_name_or_path /path/to/your/huggingface_model \
-    --db_base_dir /path/to/spider_data/test_database \
+    --db_base_dir spider_data/test_database \
     --sql_dialect "PostgreSQL" \
     --gpu "0" \
     --batch_size 32
 ```
+You can change PostgreSQL to MySQL, SQLite, Oracle SQL, SQL Server, DuckDB, etc. 
