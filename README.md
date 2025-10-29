@@ -45,8 +45,6 @@ The framework consists of three stages:
 
 ## Implemention
 
-## Implementation
-
 ### 1. Environment Setup
 
 First, ensure you have all the necessary dependencies installed. We highly recommend doing this within a virtual environment (e.g., `venv` or `conda`).
