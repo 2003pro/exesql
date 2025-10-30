@@ -43,7 +43,17 @@ The framework consists of three stages:
 |----------------------|------------|-------------------|--------------------|--------------|----------------|-------------|----------------|---------|
 | **ExeSQL**           | 7B         | **69.86**         | **74.10**          | **72.09**    | **73.64**      | **41.13**   | **69.35**      | **66.70** |
 
-## Implemention
+## 📚 Citation
+```bibtex
+@article{zhang2025exesql,
+  title={ExeSQL: Self-Taught Text-to-SQL Models with Execution-Driven Bootstrapping for SQL Dialects},
+  author={Zhang, Jipeng and Yang, Haolin and Miao, Kehao and Zhang, Ruiyuan and Pi, Renjie and Gao, Jiahui and Zhou, Xiaofang},
+  journal={arXiv preprint arXiv:2505.17231},
+  year={2025}
+}
+```
+
+## 🧩 Implemention
 
 ### 1. Environment Setup
 
@@ -121,7 +131,7 @@ python eval.py \
     --pred_result /path/to/your/sqlite_results.txt
 ```
 
-## Advanced Environment Setup (coming soon)
+## ⚙️ Advanced Environment Setup (coming soon)
 To execute queries for dialects other than SQLite, you must install the necessary drivers and set up the databases.
 ### MySQL Setup
 
