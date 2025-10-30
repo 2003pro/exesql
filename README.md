@@ -106,3 +106,29 @@ python run_mysql.py \
     --input_file /path/to/your/cleaned_predictions.txt \
     --output_file /path/to/your/mysql_results.txt
 ```
+Other available execution scripts include:
+- `run_postgres.py`
+- `run_duckdb.py`
+- `sqlite2sqlserver.py` and `run_sqlserver.py`
+- `run_duckdb.py`
+- `run_oracle.py`
+
+### 5. Evaluation
+Finally, evaluate the execution results (.txt file from Step 4) against the gold-standard solution file using eval.py.
+```bash
+python eval.py \
+    --gold_result spider_data/test_sqlite_result.txt \
+    --pred_result /path/to/your/sqlite_results.txt
+```
+
+## Advanced Environment Setup (coming soon)
+To execute queries for dialects other than SQLite, you must install the necessary drivers and set up the databases.
+### MySQL Setup
+
+### PostgreSQL Setup 
+
+### Microsoft SQL Server Setup
+
+### Oracle Setup
+
+### DuckDB Setup
