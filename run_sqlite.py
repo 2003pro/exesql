@@ -1,102 +1,152 @@
 import os
-import json
 import sqlite3
-import multiprocessing
+import time
+import argparse
+import multiprocessing as mp
 from tqdm import tqdm
 
-# Timeout in seconds for each SQL execution
-TIMEOUT_SECONDS = 30
+def execute_single_sql(args_tuple):
+    """
+    Worker function to execute a single SQL query on its corresponding database.
+    This function is designed to be called by a multiprocessing pool.
 
-def execute_sql(sql, db_path, return_dict):
+    Args:
+        args_tuple (tuple): A tuple containing index, sql, db_id, and db_dir.
+
+    Returns:
+        dict: A dictionary containing the result, including index, db_id,
+              status, data (result or error message), and execution duration.
     """
-    Executes an SQL query directly on a SQLite database file.
-    Replaces LIKE with GLOB for case-sensitive matching.
-    """
+    index, sql, db_id, db_dir = args_tuple
+    db_path = os.path.join(db_dir, db_id, f"{db_id}.sqlite")
+
+    if not os.path.exists(db_path):
+        return {
+            "index": index,
+            "db_id": db_id,
+            "status": "error",
+            "data": f"Database file {db_path} not found.",
+            "duration": 0
+        }
+
     try:
-        # 1. Connect directly to the target SQLite database file
-        conn = sqlite3.connect(db_path)
-        cursor = conn.cursor()
+        # Use a new connection for each process
+        with sqlite3.connect(db_path, timeout=10) as conn:
+            cursor = conn.cursor()
+            # Enable case-sensitive matching for the LIKE operator
+            cursor.execute("PRAGMA case_sensitive_like = true;")
 
-        # 2. Set PRAGMA for case-sensitive LIKE matching
-        cursor.execute("PRAGMA case_sensitive_like = true;")
+            # SQLite's GLOB is case-sensitive and uses '*'/'?' wildcards like file systems,
+            # which is closer to the standard SQL LIKE behavior than SQLite's default LIKE.
+            if "LIKE" in sql.upper():
+                sql = sql.replace("LIKE", "GLOB").replace("%", "*")
 
-        # 3. Replace LIKE with GLOB and % with * for compatibility
-        if "LIKE" in sql:
-            sql = sql.replace("LIKE", "GLOB").replace("%", "*")
+            start_time = time.time()
+            cursor.execute(sql)
+            result = cursor.fetchall()
+            end_time = time.time()
+            
+            duration = round(end_time - start_time, 4)
 
-        # 4. Execute the SQL query
-        cursor.execute(sql)
-        result = cursor.fetchall()
-        return_dict["result"] = result
-
-        conn.close()
+            return {
+                "index": index,
+                "db_id": db_id,
+                "status": "success",
+                "data": result,
+                "duration": duration
+            }
     except Exception as e:
-        return_dict["error"] = str(e)
+        return {
+            "index": index,
+            "db_id": db_id,
+            "status": "error",
+            "data": str(e),
+            "duration": 0
+        }
 
-def run_sql_and_save_results(gold_file, db_dir, output_file):
+def run_sql_parallel(input_file, db_dir, output_file, num_workers):
     """
-    Reads SQL queries from a JSON file, executes them on corresponding SQLite databases,
-    and writes the results to an output file.
+    Reads SQL queries from a file and executes them in parallel.
+    Saves the results and performance statistics to output files.
+
+    Args:
+        input_file (str): Path to the file containing queries.
+        db_dir (str): Path to the directory containing database files.
+        output_file (str): Path to save the query results.
+        num_workers (int): Number of parallel processes to use.
     """
-    results = []
+    # 1. Read all queries from the input file
+    try:
+        with open(input_file, 'r', encoding='utf-8') as f:
+            lines = [line.strip().split('\t') for line in f if line.strip()]
+    except FileNotFoundError:
+        print(f"[✗] Error: Input file not found at {input_file}")
+        return
 
-    # Load JSON input
-    with open(gold_file, 'r', encoding='utf-8') as f:
-        entries = json.load(f)
-
-    for entry in tqdm(entries, desc="Processing"):
-        # Extract fields from each JSON entry
-        index = entry.get('index')
-        sql = entry.get('SQL')
-        db_id = entry.get('db_id')
-
-        if index is None or sql is None or db_id is None:
-            results.append(f"{index}\tError: Missing one of index/query/db_id in JSON entry.\n")
+    # Prepare arguments for each worker process
+    tasks = []
+    for line in lines:
+        if len(line) < 3:
+            print(f"Warning: Skipping invalid line format -> {'\t'.join(line)}")
             continue
+        # Format: (index, sql, db_id, db_dir)
+        tasks.append((int(line[0]), '\t'.join(line[1:-1]), line[-1], db_dir))
+    
+    # 2. Execute queries in parallel using a process pool
+    print(f"--> [Parallel Execution]: Executing {len(tasks)} queries with {num_workers} workers...")
+    all_results = []
+    with mp.Pool(processes=num_workers) as pool:
+        # tqdm shows a progress bar
+        all_results = list(tqdm(pool.imap_unordered(execute_single_sql, tasks), total=len(tasks)))
 
-        db_path = os.path.join(db_dir, db_id, f"{db_id}.sqlite")
-        if not os.path.exists(db_path):
-            results.append(f"{index}\tError: Database file {db_path} not found.\n")
-            continue
+    # 3. Process and save the results
+    # Sort results by the original index to maintain order
+    all_results.sort(key=lambda r: r['index'])
+    
+    output_lines = []
+    query_stats = {}  # db_id -> list of query execution times
 
-        # Use a separate process to run the SQL query with timeout protection
-        manager = multiprocessing.Manager()
-        return_dict = manager.dict()
-        p = multiprocessing.Process(target=execute_sql, args=(sql, db_path, return_dict))
-        p.start()
-        p.join(TIMEOUT_SECONDS)
-
-        if p.is_alive():
-            p.terminate()
-            p.join()
-            results.append(f"{index}\tError: Timeout after {TIMEOUT_SECONDS} seconds.\n")
+    for res in all_results:
+        if res['status'] == 'success':
+            output_lines.append(f"{res['index']}\t{res['data']}\n")
+            # Collect stats only for successful queries
+            query_stats.setdefault(res['db_id'], []).append(res['duration'])
         else:
-            if "error" in return_dict:
-                results.append(f"{index}\tError: {return_dict['error']}\n")
-            else:
-                results.append(f"{index}\t{return_dict['result']}\n")
+            output_lines.append(f"{res['index']}\tError: {res['data']}\n")
 
-    # Save all results to output file
-    with open(output_file, 'w', encoding='utf-8') as output:
-        output.writelines(results)
+    with open(output_file, 'w', encoding='utf-8') as f:
+        f.writelines(output_lines)
+    print(f"\n[✓] All query results saved to {output_file}")
 
-    print(f"[✓] Results saved to {output_file}")
+    # 4. Calculate and save execution statistics
+    stats_file = output_file.replace('.txt', '_stats.csv')
+    headers = ["db_id", "avg_query_time(s)", "query_count"]
+    rows = []
+
+    for db_id, times in query_stats.items():
+        if times:
+            avg_time = round(sum(times) / len(times), 4)
+            count = len(times)
+            rows.append([db_id, avg_time, count])
+    
+    # Sort stats by database ID for consistent output
+    rows.sort(key=lambda r: r[0])
+
+    with open(stats_file, 'w', encoding='utf-8', newline='') as f:
+        f.write(','.join(headers) + '\n')
+        for row in rows:
+            f.write(','.join(map(str, row)) + '\n')
+
+    print(f"[✓] Execution statistics saved to {stats_file}")
+
 
 if __name__ == "__main__":
-    import argparse
-
-    parser = argparse.ArgumentParser(description="Run SQL queries from a JSON file on SQLite databases and save the results.")
-    parser.add_argument('--gold', type=str, required=True,
-                        help="Path to the JSON file (e.g., spider_data/train_spider_index1.json)")
-    parser.add_argument('--db_dir', type=str, required=True,
-                        help="Path to the directory containing subfolders with SQLite .sqlite files.")
-    parser.add_argument('--output', type=str, default='gold_result.txt',
-                        help="Path to the output file where results will be written.")
-
+    parser = argparse.ArgumentParser(description="Run SQL queries from a file in parallel and save the results.")
+    parser.add_argument('--input_file', type=str, required=True, help="Path to the input file containing index, SQL, and db_id.")
+    parser.add_argument('--db_dir', type=str, required=True, help="Path to the root database directory.")
+    parser.add_argument('--output_file', type=str, default='gold_result.txt', help="Path to the output file for saving results.")
+    parser.add_argument('--num_workers', type=int, default=32, help="Number of parallel processes to use.")
+    
     args = parser.parse_args()
 
-    run_sql_and_save_results(
-        gold_file=args.gold,
-        db_dir=args.db_dir,
-        output_file=args.output
-    )
+    run_sql_parallel(args.input_file, args.db_dir, args.output_file, args.num_workers)
