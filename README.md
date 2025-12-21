@@ -69,7 +69,20 @@ cd exesql
 pip install -r requirements.txt
 ```
 
-### 2. Run Inference
+### 2. Model Zoo
+
+We have released a series of models trained with **SFT (Supervised Fine-Tuning) + DPO (Direct Preference Optimization)**. These models are specialized for different datasets and SQL dialects.
+
+You can download them directly from Hugging Face:
+
+| Model Name | Dataset | SQL Dialect | Hugging Face Path |
+| :--- | :--- | :--- | :--- |
+| **exesql_postgres** | Spider / WikiSQL | PostgreSQL | [Yanghl0526/exesql_postgres](https://huggingface.co/Yanghl0526/exesql_postgres) |
+| **exesql_bird_mysql** | BIRD | MySQL | [Yanghl0526/exesql_bird_mysql](https://huggingface.co/Yanghl0526/exesql_bird_mysql) |
+| **exesql_spider_wiki_mysql** | Spider / WikiSQL | MySQL | [Yanghl0526/exesql_spider_wiki_mysql](https://huggingface.co/Yanghl0526/exesql_spider_wiki_mysql) |
+| **exesql_spider_oracle** | Spider | Oracle | [Yanghl0526/exesql_spider_oracle](https://huggingface.co/Yanghl0526/exesql_spider_oracle) |
+
+### 3. Run Inference
 You can use the local_generate_sql.py script to generate SQL queries. This script utilizes vLLM for high-throughput inference. You need to download the Spider dataset from [the page](https://yale-lily.github.io/spider) and Bird dataset from [the page](https://bird-bench.github.io/).
 
 Run the code:
@@ -85,14 +98,14 @@ python local_generate_sql.py \
 ```
 You can change PostgreSQL to MySQL, SQLite, Oracle SQL, SQL Server, DuckDB, etc. 
 
-### 3. Clean Inference Output
+### 4. Clean Inference Output
 The output from the LLM (e.g., `predictions.txt`) might contain extra text, newlines, or formatting artifacts. The `clean.py` script standardizes the output to the required `index<TAB>SQL<TAB>db_id` format, merges multi-line queries, and extracts the first valid `SELECT` statement.
 ```bash
 python clean.py \
     --input_file /path/to/your/predictions.txt \
     --output_file /path/to/your/cleaned_predictions.txt
 ```
-### 4. Execute SQL Queries
+### 5. Execute SQL Queries
 After cleaning the predictions, you can execute the generated SQL queries against the databases. We provide separate scripts for different SQL dialects.
 
 Note: The `run_sqlite.py` script works out-of-the-box with the provided `.sqlite` database files (assuming you have them). All other dialects require specific environment setup (see section below).
@@ -123,7 +136,7 @@ Other available execution scripts include:
 - `run_duckdb.py`
 - `run_oracle.py`
 
-### 5. Evaluation
+### 6. Evaluation
 Finally, evaluate the execution results (.txt file from Step 4) against the gold-standard solution file using eval.py.
 ```bash
 python eval.py \
